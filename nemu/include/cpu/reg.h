@@ -15,18 +15,28 @@ enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
  */
 
 typedef struct {
-  struct {
-    uint32_t _32;
-    uint16_t _16;
-    uint8_t _8[2];
-  } gpr[8];
+  union {
+    /* General purpose registers.
+     * gpr[0] maps to EAX, gpr[1] to ECX, ..., gpr[7] to EDI.
+     * Each gpr entry provides access to the 32-bit, 16-bit, and
+     * 8-bit sub-registers (e.g., EAX/AX/AH/AL) in the canonical encoding
+     * order described by the i386 ISA.
+     */
+    struct {
+      union {
+        uint32_t _32;
+        uint16_t _16;
+        uint8_t _8[2];
+      };
+    } gpr[8];
 
-  /* Do NOT change the order of the GPRs' definitions. */
-
-  /* In NEMU, rtlreg_t is exactly uint32_t. This makes RTL instructions
-   * in PA2 able to directly access these registers.
-   */
-  rtlreg_t eax, ecx, edx, ebx, esp, ebp, esi, edi;
+    /* Named register access (aliases the same storage as gpr[]).
+     * The order must match the `enum { R_EAX, R_ECX, ... }` above.
+     */
+    struct {
+      rtlreg_t eax, ecx, edx, ebx, esp, ebp, esi, edi;
+    };
+  };
 
   vaddr_t eip;
 
