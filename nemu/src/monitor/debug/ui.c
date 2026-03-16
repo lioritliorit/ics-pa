@@ -164,7 +164,13 @@ static int cmd_x(char *args) {
     return 0;
   }
 
-  char *expr_str = n_str + strlen(n_str);
+  char *expr_str = strtok(NULL, "");
+  if (expr_str == NULL) {
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+
+  // Skip leading spaces
   while (*expr_str == ' ') expr_str++;
   if (*expr_str == '\0') {
     printf("Usage: x N EXPR\n");
