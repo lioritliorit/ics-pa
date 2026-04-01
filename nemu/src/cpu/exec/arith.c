@@ -7,7 +7,18 @@ make_EHelper(add) {
 }
 
 make_EHelper(sub) {
-  TODO();
+  // Ensure id_dest->val is loaded
+  if (id_dest->type == OP_TYPE_REG) {
+    rtl_lr(&id_dest->val, id_dest->reg, id_dest->width);
+  }
+  
+  rtl_mv(&t1, &id_dest->val);  // Save original dest value for CF/OF calculation
+  rtl_sub(&t2, &id_dest->val, &id_src->val);
+  operand_write(id_dest, &t2);
+
+  rtl_update_ZFSF(&t2, id_dest->width);
+  rtl_update_CF_sub(&t1, &id_src->val, id_dest->width);
+  rtl_update_OF_sub(&t1, &id_src->val, &t2, id_dest->width);
 
   print_asm_template2(sub);
 }
