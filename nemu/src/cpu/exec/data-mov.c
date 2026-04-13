@@ -1,18 +1,27 @@
 #include "cpu/exec.h"
 
 make_EHelper(mov) {
+#ifdef DEBUG
+  if (decoding.opcode == 0xa1) {
+    Log("mov moffs32->eax: addr=0x%08x val=0x%08x", id_src->addr, id_src->val);
+  }
+#endif
   operand_write(id_dest, &id_src->val);
   print_asm_template2(mov);
 }
 
 make_EHelper(push) {
-  rtl_push(&id_src->val);
+  int width = decoding.is_operand_size_16 ? 2 : 4;
+  cpu.esp -= width;
+  vaddr_write(cpu.esp, width, id_dest->val);
 
   print_asm_template1(push);
 }
 
 make_EHelper(pop) {
-  rtl_pop(&id_dest->val);
+  int width = decoding.is_operand_size_16 ? 2 : 4;
+  id_dest->val = vaddr_read(cpu.esp, width);
+  cpu.esp += width;
   operand_write(id_dest, &id_dest->val);
 
   print_asm_template1(pop);
@@ -31,17 +40,36 @@ make_EHelper(popa) {
 }
 
 make_EHelper(leave) {
-  TODO();
+  int width = decoding.is_operand_size_16 ? 2 : 4;
+  if (width == 2) {
+    rtl_lr(&t0, R_BP, 2);
+    rtl_sr(R_SP, 2, &t0);
+    t0 = vaddr_read(cpu.esp, 2);
+    cpu.esp += 2;
+    rtl_sr(R_BP, 2, &t0);
+  } else {
+    rtl_lr(&t0, R_EBP, 4);
+    rtl_sr(R_ESP, 4, &t0);
+    t0 = vaddr_read(cpu.esp, 4);
+    cpu.esp += 4;
+    rtl_sr(R_EBP, 4, &t0);
+  }
 
   print_asm("leave");
 }
 
 make_EHelper(cltd) {
   if (decoding.is_operand_size_16) {
-    TODO();
+    rtl_lr(&t0, R_AX, 2);
+    rtl_sext(&t1, &t0, 2);
+    rtl_shri(&t1, &t1, 16);
+    rtl_sr(R_DX, 2, &t1);
   }
   else {
-    TODO();
+    rtl_lr(&t0, R_EAX, 4);
+    rtl_msb(&t1, &t0, 4);
+    rtl_sub(&t1, &tzero, &t1);
+    rtl_sr(R_EDX, 4, &t1);
   }
 
   print_asm(decoding.is_operand_size_16 ? "cwtl" : "cltd");

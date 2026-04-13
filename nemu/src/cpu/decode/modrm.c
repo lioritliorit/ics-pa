@@ -1,32 +1,40 @@
 #include "cpu/exec.h"
 #include "cpu/rtl.h"
 
-void load_addr(vaddr_t *eip, ModR_M *m, Operand *rm) {
-  assert(m->mod != 3);
+static inline uint8_t modrm_mod(uint8_t m) { return m >> 6; }
+static inline uint8_t modrm_reg(uint8_t m) { return (m >> 3) & 0x7; }
+static inline uint8_t modrm_rm (uint8_t m) { return m & 0x7; }
+
+static inline uint8_t sib_base (uint8_t s) { return s & 0x7; }
+static inline uint8_t sib_index(uint8_t s) { return (s >> 3) & 0x7; }
+static inline uint8_t sib_ss   (uint8_t s) { return s >> 6; }
+
+void load_addr(vaddr_t *eip, uint8_t mod, uint8_t rm_field, Operand *rm) {
+  assert(mod != 3);
 
   int32_t disp = 0;
   int disp_size = 4;
   int base_reg = -1, index_reg = -1, scale = 0;
   rtl_li(&rm->addr, 0);
 
-  if (m->R_M == R_ESP) {
-    SIB s;
-    s.val = instr_fetch(eip, 1);
-    base_reg = s.base;
-    scale = s.ss;
+  if (rm_field == R_ESP) {
+    uint8_t s = instr_fetch(eip, 1);
+    base_reg = sib_base(s);
+    scale = sib_ss(s);
 
-    if (s.index != R_ESP) { index_reg = s.index; }
+    uint8_t idx = sib_index(s);
+    if (idx != R_ESP) { index_reg = idx; }
   }
   else {
     /* no SIB */
-    base_reg = m->R_M;
+    base_reg = rm_field;
   }
 
-  if (m->mod == 0) {
+  if (mod == 0) {
     if (base_reg == R_EBP) { base_reg = -1; }
     else { disp_size = 0; }
   }
-  else if (m->mod == 1) { disp_size = 1; }
+  else if (mod == 1) { disp_size = 1; }
 
   if (disp_size != 0) {
     /* has disp */
@@ -78,12 +86,15 @@ void load_addr(vaddr_t *eip, ModR_M *m, Operand *rm) {
 }
 
 void read_ModR_M(vaddr_t *eip, Operand *rm, bool load_rm_val, Operand *reg, bool load_reg_val) {
-  ModR_M m;
-  m.val = instr_fetch(eip, 1);
-  decoding.ext_opcode = m.opcode;
+  uint8_t m = instr_fetch(eip, 1);
+  uint8_t mod = modrm_mod(m);
+  uint8_t reg_field = modrm_reg(m);
+  uint8_t rm_field = modrm_rm(m);
+
+  decoding.ext_opcode = reg_field;
   if (reg != NULL) {
     reg->type = OP_TYPE_REG;
-    reg->reg = m.reg;
+    reg->reg = reg_field;
     if (load_reg_val) {
       rtl_lr(&reg->val, reg->reg, reg->width);
     }
@@ -93,19 +104,19 @@ void read_ModR_M(vaddr_t *eip, Operand *rm, bool load_rm_val, Operand *reg, bool
 #endif
   }
 
-  if (m.mod == 3) {
+  if (mod == 3) {
     rm->type = OP_TYPE_REG;
-    rm->reg = m.R_M;
+    rm->reg = rm_field;
     if (load_rm_val) {
-      rtl_lr(&rm->val, m.R_M, rm->width);
+      rtl_lr(&rm->val, rm_field, rm->width);
     }
 
 #ifdef DEBUG
-    sprintf(rm->str, "%%%s", reg_name(m.R_M, rm->width));
+    sprintf(rm->str, "%%%s", reg_name(rm_field, rm->width));
 #endif
   }
   else {
-    load_addr(eip, &m, rm);
+    load_addr(eip, mod, rm_field, rm);
     if (load_rm_val) {
       rtl_lm(&rm->val, &rm->addr, rm->width);
     }

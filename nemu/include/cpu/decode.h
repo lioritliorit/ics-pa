@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-#include "rtl.h"
+#include "cpu/rtl.h"
 
 enum { OP_TYPE_REG, OP_TYPE_MEM, OP_TYPE_IMM };
 
@@ -37,29 +37,12 @@ typedef struct {
 #endif
 } DecodeInfo;
 
-typedef union {
-  struct {
-    uint8_t R_M		:3;
-    uint8_t reg		:3;
-    uint8_t mod		:2;
-  };
-  struct {
-    uint8_t dont_care	:3;
-    uint8_t opcode		:3;
-  };
-  uint8_t val;
-} ModR_M;
-
-typedef union {
-  struct {
-    uint8_t base	:3;
-    uint8_t index	:3;
-    uint8_t ss		:2;
-  };
-  uint8_t val;
-} SIB;
-
-void load_addr(vaddr_t *, ModR_M *, Operand *);
+/*
+ * NOTE: Do NOT rely on C bitfields for ModR/M and SIB parsing.
+ * Bitfield layout is implementation-defined and may break decoding.
+ * Always parse using explicit masks/shifts in `modrm.c`.
+ */
+void load_addr(vaddr_t *, uint8_t mod, uint8_t rm, Operand *);
 void read_ModR_M(vaddr_t *, Operand *, bool, Operand *, bool);
 
 void operand_write(Operand *, rtlreg_t *);
@@ -95,6 +78,11 @@ make_DHelper(mov_I2E);
 make_DHelper(mov_G2E);
 make_DHelper(mov_E2G);
 make_DHelper(lea_M2G);
+
+make_DHelper(movsx_Eb2G);
+make_DHelper(movsx_Ew2G);
+make_DHelper(movzx_Eb2G);
+make_DHelper(movzx_Ew2G);
 
 make_DHelper(gp2_1_E);
 make_DHelper(gp2_cl2E);

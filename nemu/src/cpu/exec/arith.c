@@ -1,7 +1,18 @@
 #include "cpu/exec.h"
 
 make_EHelper(add) {
-  TODO();
+  // Ensure id_dest->val is loaded
+  if (id_dest->type == OP_TYPE_REG) {
+    rtl_lr(&id_dest->val, id_dest->reg, id_dest->width);
+  }
+  
+  rtl_mv(&t1, &id_dest->val);  // Save original dest value for CF/OF calculation
+  rtl_add(&t2, &id_dest->val, &id_src->val);
+  operand_write(id_dest, &t2);
+
+  rtl_update_ZFSF(&t2, id_dest->width);
+  rtl_update_CF_add(&t1, &id_src->val, id_dest->width);
+  rtl_update_OF_add(&t1, &id_src->val, &t2, id_dest->width);
 
   print_asm_template2(add);
 }
@@ -24,25 +35,79 @@ make_EHelper(sub) {
 }
 
 make_EHelper(cmp) {
-  TODO();
+  rtl_mv(&t1, &id_dest->val);  // Save original dest value for CF/OF calculation
+  rtl_sub(&t2, &id_dest->val, &id_src->val);
+
+  rtl_update_ZFSF(&t2, id_dest->width);
+  rtl_update_CF_sub(&t1, &id_src->val, id_dest->width);
+  rtl_update_OF_sub(&t1, &id_src->val, &t2, id_dest->width);
+
+#ifdef DEBUG
+  if (decoding.opcode == 0x38 && id_dest->type == OP_TYPE_REG && id_src->type == OP_TYPE_REG &&
+      id_dest->width == 1 && id_dest->reg == R_EAX && id_src->reg == R_EDX) {
+    uint8_t al = (uint8_t)id_dest->val;
+    uint8_t dl = (uint8_t)id_src->val;
+    if (dl != al) {
+      Log("cmpb dl,al @eip=0x%08x ecx=0x%08x ebx=0x%08x al=0x%02x dl=0x%02x result=0x%02x ZF=%d",
+          cpu.eip, cpu.ecx, cpu.ebx, al, dl, (uint8_t)t2, cpu.eflags.ZF);
+      Log("  flags: CF=%d SF=%d OF=%d", cpu.eflags.CF, cpu.eflags.SF, cpu.eflags.OF);
+    }
+  }
+#endif
 
   print_asm_template2(cmp);
 }
 
 make_EHelper(inc) {
-  TODO();
+  // Ensure id_dest->val is loaded
+  if (id_dest->type == OP_TYPE_REG) {
+    rtl_lr(&id_dest->val, id_dest->reg, id_dest->width);
+  }
+  
+  rtl_mv(&t1, &id_dest->val);  // Save original dest value for CF/OF calculation
+  rtl_li(&t0, 1);
+  rtl_add(&t2, &id_dest->val, &t0);
+  operand_write(id_dest, &t2);
+
+  rtl_update_ZFSF(&t2, id_dest->width);
+  rtl_update_OF_add(&t1, &t0, &t2, id_dest->width);
+  // CF is not affected by inc
 
   print_asm_template1(inc);
 }
 
 make_EHelper(dec) {
-  TODO();
+  // Ensure id_dest->val is loaded
+  if (id_dest->type == OP_TYPE_REG) {
+    rtl_lr(&id_dest->val, id_dest->reg, id_dest->width);
+  }
+  
+  rtl_mv(&t1, &id_dest->val);  // Save original dest value for CF/OF calculation
+  rtl_li(&t0, 1);
+  rtl_sub(&t2, &id_dest->val, &t0);
+  operand_write(id_dest, &t2);
+
+  rtl_update_ZFSF(&t2, id_dest->width);
+  rtl_update_OF_sub(&t1, &t0, &t2, id_dest->width);
+  // CF is not affected by dec
 
   print_asm_template1(dec);
 }
 
 make_EHelper(neg) {
-  TODO();
+  // Ensure id_dest->val is loaded
+  if (id_dest->type == OP_TYPE_REG) {
+    rtl_lr(&id_dest->val, id_dest->reg, id_dest->width);
+  }
+  
+  rtl_mv(&t1, &id_dest->val);  // Save original dest value
+  rtl_neg(&t2, &id_dest->val);
+  operand_write(id_dest, &t2);
+
+  rtl_update_ZFSF(&t2, id_dest->width);
+  rtl_ne(&t0, &t1, &tzero);  // CF = (dest != 0)
+  rtl_set_CF(&t0);  // CF = (dest != 0)
+  rtl_update_OF_sub(&tzero, &t1, &t2, id_dest->width);
 
   print_asm_template1(neg);
 }
@@ -61,7 +126,7 @@ make_EHelper(adc) {
   rtl_set_CF(&t0);
 
   rtl_xor(&t0, &id_dest->val, &id_src->val);
-  rtl_not(&t0);
+  rtl_not(&t0, &t0);
   rtl_xor(&t1, &id_dest->val, &t2);
   rtl_and(&t0, &t0, &t1);
   rtl_msb(&t0, &t0, id_dest->width);

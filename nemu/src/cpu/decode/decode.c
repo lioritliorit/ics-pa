@@ -131,6 +131,26 @@ make_DHelper(lea_M2G) {
   decode_op_rm(eip, id_src, false, id_dest, false);
 }
 
+make_DHelper(movsx_Eb2G) {
+  id_src->width = 1;
+  decode_op_rm(eip, id_src, true, id_dest, false);
+}
+
+make_DHelper(movsx_Ew2G) {
+  id_src->width = 2;
+  decode_op_rm(eip, id_src, true, id_dest, false);
+}
+
+make_DHelper(movzx_Eb2G) {
+  id_src->width = 1;
+  decode_op_rm(eip, id_src, true, id_dest, false);
+}
+
+make_DHelper(movzx_Ew2G) {
+  id_src->width = 2;
+  decode_op_rm(eip, id_src, true, id_dest, false);
+}
+
 /* AL <- Ib
  * eAX <- Iv
  */
@@ -178,6 +198,10 @@ make_DHelper(I) {
   decode_op_I(eip, id_dest, true);
 }
 
+make_DHelper(SI) {
+  decode_op_SI(eip, id_dest, true);
+}
+
 make_DHelper(r) {
   decode_op_r(eip, id_dest, true);
 }
@@ -196,13 +220,10 @@ make_DHelper(test_I) {
 }
 
 make_DHelper(SI2E) {
-  assert(id_dest->width == 2 || id_dest->width == 4);
+  /* 0x80/0x83: 8-bit immediate, 0x81: 32-bit immediate */
+  id_src->width = (decoding.opcode == 0x81) ? 4 : 1;
   decode_op_rm(eip, id_dest, true, NULL, false);
-  id_src->width = 1;
   decode_op_SI(eip, id_src, true);
-  if (id_dest->width == 2) {
-    id_src->val &= 0xffff;
-  }
 }
 
 make_DHelper(SI_E2G) {
@@ -260,8 +281,19 @@ make_DHelper(a2O) {
 }
 
 make_DHelper(J) {
+  id_dest->width = 4;
   decode_op_SI(eip, id_dest, false);
   // the target address can be computed in the decode stage
+  // NOTE: when this helper runs, *eip already points to the next instruction
+  // (opcode byte has been fetched in exec_real, and the immediate has been fetched above).
+  decoding.jmp_eip = id_dest->simm + *eip;
+}
+
+make_DHelper(Jb) {
+  id_dest->width = 1;
+  decode_op_SI(eip, id_dest, false);
+  // the target address can be computed in the decode stage
+  // *eip already points to the next instruction
   decoding.jmp_eip = id_dest->simm + *eip;
 }
 

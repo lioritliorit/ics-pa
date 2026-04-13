@@ -130,15 +130,25 @@ static inline void rtl_mv(rtlreg_t* dest, const rtlreg_t *src1) {
   *dest = *src1;
 }
 
-static inline void rtl_not(rtlreg_t* dest) {
-  // dest <- ~dest
-  *dest = ~*dest;
+static inline void rtl_not(rtlreg_t* dest, const rtlreg_t* src1) {
+  // dest <- ~src1
+  *dest = ~(*src1);
+}
+
+static inline void rtl_neg(rtlreg_t* dest, const rtlreg_t* src1) {
+  // dest <- -src1
+  *dest = -(*src1);
+}
+
+static inline void rtl_ne(rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2) {
+  // dest <- (src1 != src2 ? 1 : 0)
+  *dest = (*src1 != *src2);
 }
 
 static inline void rtl_sext(rtlreg_t* dest, const rtlreg_t* src1, int width) {
   // dest <- signext(src1[(width * 8 - 1) .. 0])
-  uint32_t mask = (1u << (width * 8)) - 1;
-  uint32_t sign_bit = 1u << (width * 8 - 1);
+  uint32_t mask = (width == 4) ? 0xffffffffu : ((1u << (width * 8)) - 1);
+  uint32_t sign_bit = (width == 4) ? 0x80000000u : (1u << (width * 8 - 1));
   *dest = (*src1 & mask);
   if (*dest & sign_bit) {
     *dest |= ~mask;
@@ -176,12 +186,13 @@ static inline void rtl_neq0(rtlreg_t* dest, const rtlreg_t* src1) {
 
 static inline void rtl_msb(rtlreg_t* dest, const rtlreg_t* src1, int width) {
   // dest <- src1[width * 8 - 1]
-  TODO();
+  uint32_t sign_bit = 1u << (width * 8 - 1);
+  rtl_li(dest, (*src1 & sign_bit) != 0);
 }
 
 static inline void rtl_update_ZF(const rtlreg_t* result, int width) {
   // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])
-  uint32_t mask = (1u << (width * 8)) - 1;
+  uint32_t mask = (width == 4) ? 0xffffffffu : ((1u << (width * 8)) - 1);
   rtl_li(&t0, ((*result & mask) == 0));
   rtl_set_ZF(&t0);
 }
@@ -200,7 +211,7 @@ static inline void rtl_update_ZFSF(const rtlreg_t* result, int width) {
 
 static inline void rtl_update_CF_sub(const rtlreg_t* dest, const rtlreg_t* src, int width) {
   // CF = borrow, for sub: CF if dest < src (unsigned)
-  uint32_t mask = (1u << (width * 8)) - 1;
+  uint32_t mask = (width == 4) ? 0xffffffffu : ((1u << (width * 8)) - 1);
   rtl_li(&t0, ((*dest & mask) < (*src & mask)));
   rtl_set_CF(&t0);
 }
@@ -209,6 +220,20 @@ static inline void rtl_update_OF_sub(const rtlreg_t* dest, const rtlreg_t* src, 
   // OF = overflow for signed sub
   uint32_t sign_bit = 1u << (width * 8 - 1);
   rtl_li(&t0, (((*dest & sign_bit) != (*src & sign_bit)) && ((*dest & sign_bit) != (*result & sign_bit))));
+  rtl_set_OF(&t0);
+}
+
+static inline void rtl_update_CF_add(const rtlreg_t* dest, const rtlreg_t* src, int width) {
+  // CF = carry, for add: CF if result < dest (unsigned)
+  uint32_t mask = (width == 4) ? 0xffffffffu : ((1u << (width * 8)) - 1);
+  rtl_li(&t0, ((*dest & mask) + (*src & mask)) < (*dest & mask));
+  rtl_set_CF(&t0);
+}
+
+static inline void rtl_update_OF_add(const rtlreg_t* dest, const rtlreg_t* src, const rtlreg_t* result, int width) {
+  // OF = overflow for signed add
+  uint32_t sign_bit = 1u << (width * 8 - 1);
+  rtl_li(&t0, (((*dest & sign_bit) == (*src & sign_bit)) && ((*dest & sign_bit) != (*result & sign_bit))));
   rtl_set_OF(&t0);
 }
 
