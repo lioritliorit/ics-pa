@@ -80,6 +80,9 @@ static inline void load_img() {
 }
 
 static inline void restart() {
+  /* Initialize CPU state before the program starts. */
+  memset(&cpu, 0, sizeof(cpu));
+
   /* Set the initial instruction pointer. */
   cpu.eip = ENTRY_START;
   cpu.eflags_val = 0x2;  // initial value for EFLAGS

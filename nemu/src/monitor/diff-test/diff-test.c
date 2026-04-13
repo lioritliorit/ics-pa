@@ -149,7 +149,15 @@ void difftest_step(uint32_t eip) {
 
   // TODO: Check the registers state with QEMU.
   // Set `diff` as `true` if they are not the same.
-  TODO();
+  if (cpu.eax != r.eax) { diff = true; Log("eax differs: NEMU 0x%08x, QEMU 0x%08x", cpu.eax, r.eax); }
+  if (cpu.ecx != r.ecx) { diff = true; Log("ecx differs: NEMU 0x%08x, QEMU 0x%08x", cpu.ecx, r.ecx); }
+  if (cpu.edx != r.edx) { diff = true; Log("edx differs: NEMU 0x%08x, QEMU 0x%08x", cpu.edx, r.edx); }
+  if (cpu.ebx != r.ebx) { diff = true; Log("ebx differs: NEMU 0x%08x, QEMU 0x%08x", cpu.ebx, r.ebx); }
+  if (cpu.esp != r.esp) { diff = true; Log("esp differs: NEMU 0x%08x, QEMU 0x%08x", cpu.esp, r.esp); }
+  if (cpu.ebp != r.ebp) { diff = true; Log("ebp differs: NEMU 0x%08x, QEMU 0x%08x", cpu.ebp, r.ebp); }
+  if (cpu.esi != r.esi) { diff = true; Log("esi differs: NEMU 0x%08x, QEMU 0x%08x", cpu.esi, r.esi); }
+  if (cpu.edi != r.edi) { diff = true; Log("edi differs: NEMU 0x%08x, QEMU 0x%08x", cpu.edi, r.edi); }
+  if (cpu.eip != r.eip) { diff = true; Log("eip differs: NEMU 0x%08x, QEMU 0x%08x", cpu.eip, r.eip); }
 
   if (diff) {
     nemu_state = NEMU_END;
