@@ -42,19 +42,6 @@ make_EHelper(cmp) {
   rtl_update_CF_sub(&t1, &id_src->val, id_dest->width);
   rtl_update_OF_sub(&t1, &id_src->val, &t2, id_dest->width);
 
-#ifdef DEBUG
-  if (decoding.opcode == 0x38 && id_dest->type == OP_TYPE_REG && id_src->type == OP_TYPE_REG &&
-      id_dest->width == 1 && id_dest->reg == R_EAX && id_src->reg == R_EDX) {
-    uint8_t al = (uint8_t)id_dest->val;
-    uint8_t dl = (uint8_t)id_src->val;
-    if (dl != al) {
-      Log("cmpb dl,al @eip=0x%08x ecx=0x%08x ebx=0x%08x al=0x%02x dl=0x%02x result=0x%02x ZF=%d",
-          cpu.eip, cpu.ecx, cpu.ebx, al, dl, (uint8_t)t2, cpu.eflags.ZF);
-      Log("  flags: CF=%d SF=%d OF=%d", cpu.eflags.CF, cpu.eflags.SF, cpu.eflags.OF);
-    }
-  }
-#endif
-
   print_asm_template2(cmp);
 }
 

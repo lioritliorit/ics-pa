@@ -1,11 +1,6 @@
 #include "cpu/exec.h"
 
 make_EHelper(mov) {
-#ifdef DEBUG
-  if (decoding.opcode == 0xa1) {
-    Log("mov moffs32->eax: addr=0x%08x val=0x%08x", id_src->addr, id_src->val);
-  }
-#endif
   operand_write(id_dest, &id_src->val);
   print_asm_template2(mov);
 }
@@ -77,10 +72,14 @@ make_EHelper(cltd) {
 
 make_EHelper(cwtl) {
   if (decoding.is_operand_size_16) {
-    TODO();
+    rtl_lr(&t0, R_AL, 1);
+    rtl_sext(&t1, &t0, 1);
+    rtl_sr(R_AX, 2, &t1);
   }
   else {
-    TODO();
+    rtl_lr(&t0, R_AX, 2);
+    rtl_sext(&t1, &t0, 2);
+    rtl_sr(R_EAX, 4, &t1);
   }
 
   print_asm(decoding.is_operand_size_16 ? "cbtw" : "cwtl");

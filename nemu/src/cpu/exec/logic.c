@@ -62,6 +62,36 @@ make_EHelper(or) {
   print_asm_template2(or);
 }
 
+make_EHelper(rol) {
+  if (id_dest->type == OP_TYPE_REG) {
+    rtl_lr(&id_dest->val, id_dest->reg, id_dest->width);
+  }
+
+  uint32_t bits = id_dest->width * 8;
+  uint32_t mask = (id_dest->width == 4) ? 0xffffffffu : ((1u << bits) - 1);
+  uint32_t count = id_src->val & 0x1f;
+  count %= bits;
+
+  uint32_t val = id_dest->val & mask;
+  uint32_t res = val;
+  if (count != 0) {
+    res = ((val << count) | (val >> (bits - count))) & mask;
+
+    rtl_li(&t0, res & 1);
+    rtl_set_CF(&t0);
+
+    if (count == 1) {
+      uint32_t msb = (res >> (bits - 1)) & 1;
+      rtl_li(&t0, msb ^ (res & 1));
+      rtl_set_OF(&t0);
+    }
+  }
+
+  rtl_li(&t2, res);
+  operand_write(id_dest, &t2);
+  print_asm_template2(rol);
+}
+
 make_EHelper(sar) {
   // Ensure id_dest->val is loaded
   if (id_dest->type == OP_TYPE_REG) {

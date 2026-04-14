@@ -31,6 +31,7 @@ make_EHelper(neg);
 
 make_EHelper(test);
 make_EHelper(not);
+make_EHelper(rol);
 make_EHelper(shl);
 make_EHelper(shr);
 make_EHelper(sar);
@@ -45,9 +46,12 @@ make_EHelper(idiv);
 
 make_EHelper(jmp);
 make_EHelper(jcc);
+make_EHelper(loop);
+make_EHelper(jcxz);
 make_EHelper(jmp_rm);
 make_EHelper(call);
 make_EHelper(ret);
+make_EHelper(ret_imm);
 make_EHelper(call_rm);
 
 make_EHelper(leave);
@@ -58,6 +62,8 @@ make_EHelper(movzx);
 make_EHelper(lea);
 
 make_EHelper(nop);
+make_EHelper(in);
+make_EHelper(out);
 
 make_EHelper(gp1);
 make_EHelper(gp2);

@@ -30,6 +30,8 @@ static inline void idex(vaddr_t *eip, opcode_entry *e) {
 }
 
 make_EHelper(2byte_esc);
+make_EHelper(in);
+make_EHelper(out);
 
 #define make_group(name, item0, item1, item2, item3, item4, item5, item6, item7) \
   static opcode_entry concat(opcode_table_, name) [8] = { \
@@ -47,7 +49,7 @@ make_group(gp1,
 
   /* 0xf6, 0xf7 */
 make_group(gp3,
-    IDEXW(test_I, test, 1), IDEX(test_I, test), EXW(not, 1), EX(not),
+    IDEXW(test_I, test, 1), IDEX(test_I, test), EX(not), EX(neg),
     EX(mul), EX(imul1), EX(div), EX(idiv))
 
   /* 0xfe */
@@ -89,6 +91,7 @@ make_EHelper(push_rm) {
 
 make_EHelper(gp2) {
   switch (decoding.ext_opcode) {
+    case 0: exec_rol(eip); break;
     case 4: exec_shl(eip); break;
     case 5: exec_shr(eip); break;
     case 7: exec_sar(eip); break;
@@ -135,17 +138,17 @@ opcode_entry opcode_table [512] = {
   /* 0x8c */	EMPTY, IDEX(lea_M2G, lea), EMPTY, EMPTY,
   /* 0x90 */	EX(nop), EMPTY, EMPTY, EMPTY,
   /* 0x94 */	EMPTY, EMPTY, EMPTY, EMPTY,
-  /* 0x98 */	EMPTY, EX(cltd), EMPTY, EMPTY,
+  /* 0x98 */	EX(cwtl), EX(cltd), EMPTY, EMPTY,
   /* 0x9c */	EMPTY, EMPTY, EMPTY, EMPTY,
   /* 0xa0 */	IDEXW(O2a, mov, 1), IDEX(O2a, mov), IDEXW(a2O, mov, 1), IDEX(a2O, mov),
   /* 0xa4 */	EMPTY, EMPTY, EMPTY, EMPTY,
-  /* 0xa8 */	EMPTY, EMPTY, EMPTY, EMPTY,
+  /* 0xa8 */	IDEXW(I2a, test, 1), IDEX(I2a, test), EMPTY, EMPTY,
   /* 0xac */	EMPTY, EMPTY, EMPTY, EMPTY,
   /* 0xb0 */	IDEXW(mov_I2r, mov, 1), IDEXW(mov_I2r, mov, 1), IDEXW(mov_I2r, mov, 1), IDEXW(mov_I2r, mov, 1),
   /* 0xb4 */	IDEXW(mov_I2r, mov, 1), IDEXW(mov_I2r, mov, 1), IDEXW(mov_I2r, mov, 1), IDEXW(mov_I2r, mov, 1),
   /* 0xb8 */	IDEX(mov_I2r, mov), IDEX(mov_I2r, mov), IDEX(mov_I2r, mov), IDEX(mov_I2r, mov),
   /* 0xbc */	IDEX(mov_I2r, mov), IDEX(mov_I2r, mov), IDEX(mov_I2r, mov), IDEX(mov_I2r, mov),
-  /* 0xc0 */	IDEXW(gp2_Ib2E, gp2, 1), IDEX(gp2_Ib2E, gp2), EMPTY, EX(ret),
+  /* 0xc0 */	IDEXW(gp2_Ib2E, gp2, 1), IDEX(gp2_Ib2E, gp2), IDEXW(I, ret_imm, 2), EX(ret),
   /* 0xc4 */	EMPTY, EMPTY, IDEXW(mov_I2E, mov, 1), IDEX(mov_I2E, mov),
   /* 0xc8 */	EMPTY, EX(leave), EMPTY, EMPTY,
   /* 0xcc */	EMPTY, EMPTY, EMPTY, EMPTY,
@@ -153,10 +156,10 @@ opcode_entry opcode_table [512] = {
   /* 0xd4 */	EMPTY, EMPTY, EX(nemu_trap), EMPTY,
   /* 0xd8 */	EMPTY, EMPTY, EMPTY, EMPTY,
   /* 0xdc */	EMPTY, EMPTY, EMPTY, EMPTY,
-  /* 0xe0 */	EMPTY, EMPTY, EMPTY, EMPTY,
-  /* 0xe4 */	EMPTY, EMPTY, EMPTY, EMPTY,
+  /* 0xe0 */	IDEXW(Jb, loop, 1), IDEXW(Jb, loop, 1), IDEXW(Jb, loop, 1), IDEXW(Jb, jcxz, 1),
+  /* 0xe4 */	IDEXW(in_I2a, in, 1), IDEX(in_I2a, in), IDEXW(out_a2I, out, 1), IDEX(out_a2I, out),
   /* 0xe8 */	IDEX(J, call), IDEX(J, jmp), EMPTY, IDEXW(Jb, jmp, 1),
-  /* 0xec */	EMPTY, EMPTY, EMPTY, EMPTY,
+  /* 0xec */	IDEXW(in_dx2a, in, 1), IDEX(in_dx2a, in), IDEXW(out_a2dx, out, 1), IDEX(out_a2dx, out),
   /* 0xf0 */	EMPTY, EMPTY, EMPTY, EMPTY,
   /* 0xf4 */	EMPTY, EMPTY, IDEXW(E, gp3, 1), IDEX(E, gp3),
   /* 0xf8 */	EMPTY, EMPTY, EMPTY, EMPTY,
@@ -244,27 +247,6 @@ make_EHelper(real) {
 }
 
 static inline void update_eip(void) {
-  vaddr_t next = decoding.is_jmp ? decoding.jmp_eip : decoding.seq_eip;
-  if (next == 0x00100024) {
-    Log("about to set eip=0x00100024: prev_eip=0x%08x opcode=0x%02x is_jmp=%d seq_eip=0x%08x jmp_eip=0x%08x esp=0x%08x",
-        cpu.eip, decoding.opcode & 0xff, decoding.is_jmp, decoding.seq_eip, decoding.jmp_eip, cpu.esp);
-  }
-  if (next == 0x00100268) {
-    uint32_t ra = vaddr_read(cpu.esp, 4);
-    uint32_t ra16 = vaddr_read(cpu.esp, 2);
-    uint32_t a1 = vaddr_read(cpu.esp + 4, 4);
-    uint32_t a2 = vaddr_read(cpu.esp + 8, 4);
-    uint32_t a1_16 = vaddr_read(cpu.esp + 2, 4);
-    uint32_t a2_16 = vaddr_read(cpu.esp + 6, 4);
-    Log("enter strcmp: ra32=0x%08x ra16=0x%04x arg1=0x%08x arg2=0x%08x arg1@+2=0x%08x arg2@+6=0x%08x esp=0x%08x",
-        ra, ra16 & 0xffff, a1, a2, a1_16, a2_16, cpu.esp);
-  }
-  if (next >= (128u * 1024u * 1024u)) {
-    Log("about to set eip out-of-bound: prev_eip=0x%08x opcode=0x%02x is_jmp=%d seq_eip=0x%08x jmp_eip=0x%08x esp=0x%08x",
-        cpu.eip, decoding.opcode & 0xff, decoding.is_jmp, decoding.seq_eip, decoding.jmp_eip, cpu.esp);
-    nemu_state = NEMU_END;
-    return;
-  }
   cpu.eip = (decoding.is_jmp ? (decoding.is_jmp = 0, decoding.jmp_eip) : decoding.seq_eip);
 }
 
