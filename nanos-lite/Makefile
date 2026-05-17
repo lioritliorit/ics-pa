@@ -12,6 +12,7 @@ OBJCOPY_FILE = $(NAVY_HOME)/tests/dummy/build/dummy-x86
 .PHONY: update update-ramdisk-objcopy update-ramdisk-fsimg update-fsimg
 
 update-ramdisk-objcopy:
+	$(MAKE) -s -C $(NAVY_HOME)/tests/dummy ISA=$(ISA)
 	$(OBJCOPY) $(OBJCOPY_FLAG) $(OBJCOPY_FILE) $(RAMDISK_FILE)
 	touch src/files.h
 
