@@ -29,23 +29,32 @@ enum NDL_EventType {
   NDL_EVENT_TIMER,
 };
 
-typedef struct NDL_Event {
-  enum NDL_EventType type; 
+typedef struct {
+  enum NDL_EventType type;
   int32_t data;
 } NDL_Event;
 
-typedef struct NDL_Bitmap {
+typedef struct {
   int w, h;
   uint32_t *pixels;
 } NDL_Bitmap;
 
+int NDL_Init(uint32_t flags);
+void NDL_Quit();
+uint32_t NDL_GetTicks();
+void NDL_OpenCanvas(int *w, int *h);
+int NDL_PollEvent(char *buf, int len);
+int NDL_WaitEvent(NDL_Event *event);
 int NDL_OpenDisplay(int w, int h);
 int NDL_CloseDisplay();
 int NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h);
 int NDL_Render();
-int NDL_WaitEvent(NDL_Event *event);
 int NDL_LoadBitmap(NDL_Bitmap *bmp, const char *filename);
-int NDL_ReleaseBitmap(NDL_Bitmap *bmp);
+void NDL_ReleaseBitmap(NDL_Bitmap *bmp);
+int NDL_OpenAudio(int freq, int channels, int samples);
+void NDL_CloseAudio();
+int NDL_PlayAudio(void *buf, int len);
+int NDL_QueryAudio();
 
 #ifdef __cplusplus
 }

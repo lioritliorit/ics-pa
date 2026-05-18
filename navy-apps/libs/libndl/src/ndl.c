@@ -12,7 +12,7 @@ static void get_display_info();
 static int canvas_w, canvas_h, screen_w, screen_h, pad_x, pad_y;
 
 int NDL_OpenDisplay(int w, int h) {
-  if (!canvas) {
+  if (canvas) {
     NDL_CloseDisplay();
   }
 
@@ -36,14 +36,25 @@ int NDL_OpenDisplay(int w, int h) {
     assert(screen_h >= canvas_h);
     pad_x = (screen_w - canvas_w) / 2;
     pad_y = (screen_h - canvas_h) / 2;
-    fbdev = fopen("/dev/fb", "w"); assert(fbdev);
+    fbdev = fopen("/dev/fb", "r+"); assert(fbdev);
     evtdev = fopen("/dev/events", "r"); assert(evtdev);
   }
+
+  return 0;
 }
 
 int NDL_CloseDisplay() {
   if (canvas) {
     free(canvas);
+    canvas = NULL;
+  }
+  if (fbdev) {
+    fclose(fbdev);
+    fbdev = NULL;
+  }
+  if (evtdev && evtdev != stdin) {
+    fclose(evtdev);
+    evtdev = NULL;
   }
   return 0;
 }

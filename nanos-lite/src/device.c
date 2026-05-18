@@ -9,7 +9,29 @@ static const char *keyname[256] __attribute__((used)) = {
 };
 
 size_t events_read(void *buf, size_t len) {
-  return 0;
+  char tmp[64];
+  int key = _read_key();
+  const int KEYDOWN_MASK = 0x8000;
+  if (key != _KEY_NONE) {
+    int pressed = (key & KEYDOWN_MASK) != 0;
+    int code = key & ~KEYDOWN_MASK;
+    const char *name = "UNKNOWN";
+    if (code >= 0 && code < (int)(sizeof(keyname)/sizeof(keyname[0])) && keyname[code]) {
+      name = keyname[code];
+    }
+    if (pressed) {
+      sprintf(tmp, "kd %s\n", name);
+    } else {
+      sprintf(tmp, "ku %s\n", name);
+    }
+  } else {
+    unsigned long t = _uptime();
+    sprintf(tmp, "t %lu\n", t);
+  }
+  size_t slen = strlen(tmp);
+  if (len < slen) slen = len;
+  memcpy(buf, tmp, slen);
+  return slen;
 }
 
 static char dispinfo[128] __attribute__((used));

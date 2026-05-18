@@ -57,7 +57,7 @@ int NDL_LoadBitmap(NDL_Bitmap *bmp, const char *filename) {
   return 0;
 }
 
-int NDL_ReleaseBitmap(NDL_Bitmap *bmp) {
+void NDL_ReleaseBitmap(NDL_Bitmap *bmp) {
   assert(bmp->pixels);
   free(bmp->pixels);
   bmp->pixels = NULL;

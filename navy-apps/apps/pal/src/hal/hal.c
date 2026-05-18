@@ -179,7 +179,7 @@ void SDL_SetPalette(SDL_Surface *s, int flags, SDL_Color *colors,
   s->format->palette->ncolors = ncolors;
   memcpy(s->format->palette->colors, colors, sizeof(SDL_Color) * ncolors);
 
-  if(s->flags & SDL_HWSURFACE) {
+  if (s->format->BitsPerPixel == 8) {
     assert(ncolors == 256);
     for (int i = 0; i < ncolors; i ++) {
       uint8_t r = colors[i].r;
@@ -196,11 +196,26 @@ void SDL_SetPalette(SDL_Surface *s, int flags, SDL_Color *colors,
 void SDL_UpdateRect(SDL_Surface *screen, int x, int y, int w, int h) {
   assert(screen);
   assert(screen->pitch == W);
+  assert(screen->format->BitsPerPixel == 8);
 
   // this should always be true in NEMU-PAL
   assert(screen->flags & SDL_HWSURFACE);
 
-  redraw();
+  if (x < 0) x = 0;
+  if (y < 0) y = 0;
+  if (w <= 0 || x + w > screen->w) w = screen->w - x;
+  if (h <= 0 || y + h > screen->h) h = screen->h - y;
+
+  uint8_t *pixels = screen->pixels;
+  for (int j = y; j < y + h; j ++) {
+    for (int i = x; i < x + w; i ++) {
+      int idx = pixels[i + j * screen->w];
+      fb[i + j * W] = palette[idx];
+    }
+  }
+
+  NDL_DrawRect(&fb[y * W + x], x, y, w, h);
+  NDL_Render();
 }
 
 void SDL_SoftStretch(SDL_Surface *src, SDL_Rect *srcrect, 

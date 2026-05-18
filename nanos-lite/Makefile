@@ -20,11 +20,11 @@ update-fsimg:
 	$(MAKE) -s -C $(NAVY_HOME) ISA=$(ISA)
 
 update-ramdisk-fsimg: update-fsimg
-	$(eval FSIMG_FILES := $(shell find $(FSIMG_PATH) -type f))
+	$(eval FSIMG_FILES := $(shell find $(FSIMG_PATH) -type f | sort))
 	@for f in $(FSIMG_FILES); do \
 		if $(READELF) -h $$f 2> /dev/null > /dev/null; then \
 			$(OBJCOPY) $(OBJCOPY_FLAG) $$f; \
-		fi \
+		fi; \
 	done
 	@cat $(FSIMG_FILES) > $(RAMDISK_FILE)
 	@wc -c $(FSIMG_FILES) | grep -v 'total$$' | sed -e 's+ $(FSIMG_PATH)+ +' | awk -v sum=0 '{print "\x7b\x22" $$2 "\x22\x2c " $$1 "\x2c " sum "\x7d\x2c";sum += $$1}' > src/files.h
@@ -34,3 +34,5 @@ src/syscall.h: $(NAVY_HOME)/libs/libos/src/syscall.h
 
 update: update-ramdisk-fsimg src/syscall.h
 	@touch src/initrd.S
+
+app: update
