@@ -26,6 +26,7 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr) {
   uint32_t offset = (off_31_16 << 16) | off_15_0;
   rtl_li(&t0, cpu.eflags_val);
   rtl_push(&t0);
+  cpu.eflags.IF = 0;
   rtl_li(&t0, cpu.cs);
   rtl_push(&t0);
   rtl_li(&t0, ret_addr);
@@ -36,6 +37,10 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr) {
 
 void dev_raise_intr() {
   if (cpu.idtr_limit == 0 && cpu.idtr_base == 0) {
+    return;
+  }
+  /* Honor IF: do not deliver device IRQ while IF is clear. */
+  if (!cpu.eflags.IF) {
     return;
   }
   raise_intr(0x20, cpu.eip);

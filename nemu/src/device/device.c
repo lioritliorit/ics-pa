@@ -26,8 +26,9 @@ extern void update_screen();
 
 static void timer_sig_handler(int signum) {
   jiffy ++;
-  timer_intr();
 
+  /* Defer IRQ to device_update() between instructions to avoid nested
+   * interrupts while handling traps/syscalls in Nanos-lite. */
   device_update_flag = true;
   if (jiffy % (TIMER_HZ / VGA_HZ) == 0) {
     update_screen_flag = true;
@@ -42,6 +43,8 @@ void device_update() {
     return;
   }
   device_update_flag = false;
+
+  timer_intr();
 
   if (update_screen_flag) {
     update_screen();
