@@ -26,7 +26,7 @@ size_t events_read(void *buf, size_t len) {
     }
   } else {
     unsigned long t = _uptime();
-    sprintf(tmp, "t %lu\n", t);
+    sprintf(tmp, "t %u\n", (unsigned int)t);
   }
   size_t slen = strlen(tmp);
   if (len < slen) slen = len;
