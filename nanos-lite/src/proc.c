@@ -30,17 +30,23 @@ void load_prog(const char *filename) {
 }
 
 _RegSet* schedule(_RegSet *prev) {
-  // save the context pointer
-  if (current != NULL) {
+  
+  // 保存当前进程的上下文
+  if (current != NULL && prev != NULL) {
     current->tf = prev;
   }
   
-  // always select pcb[0] as the new process
-  current = &pcb[0];
+  // 第一次时，current 可能是 NULL，设置为 &pcb[1] 来确保第一次运行 pcb[0]
+  if (current == NULL) {
+    current = &pcb[1];
+  }
   
-  // switch to the new address space
+  // 轮流选择 pcb[0] 和 pcb[1]
+  current = (current == &pcb[0] ? &pcb[1] : &pcb[0]);
+  
+  // 切换到新地址空间
   _switch(&current->as);
   
-  // return the new context
+  // 返回新上下文
   return current->tf;
 }
