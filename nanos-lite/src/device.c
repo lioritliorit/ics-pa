@@ -1,4 +1,5 @@
 #include "common.h"
+#include "proc.h"
 
 #define NAME(key) \
   [_KEY_##key] = #key,
@@ -18,6 +19,10 @@ size_t events_read(void *buf, size_t len) {
     const char *name = "UNKNOWN";
     if (code >= 0 && code < (int)(sizeof(keyname)/sizeof(keyname[0])) && keyname[code]) {
       name = keyname[code];
+    }
+    // 检测 F12 按下，切换游戏
+    if (pressed && code == _KEY_F12) {
+      switch_game();
     }
     if (pressed) {
       sprintf(tmp, "kd %s\n", name);
