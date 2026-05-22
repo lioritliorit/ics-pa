@@ -1,6 +1,8 @@
 #include "common.h"
 #include "fs.h"
 #include "syscall.h"
+#include "proc.h"
+#include "memory.h"
 
 _RegSet* do_syscall(_RegSet *r) {
   uintptr_t a[4];
@@ -51,11 +53,12 @@ _RegSet* do_syscall(_RegSet *r) {
       break;
     }
     case SYS_brk: {
-      /* Single-task: accept any break below user stack region. */
+      /* Single-task: accept any break inside the user address space. */
       uintptr_t brk = SYSCALL_ARG2(r);
-      if (brk >= 0x7000000) {
+      if (brk < (uintptr_t)current->as.area.start || brk >= (uintptr_t)current->as.area.end) {
         r->eax = -1;
       } else {
+        mm_brk(brk);
         r->eax = 0;
       }
       break;

@@ -14,6 +14,9 @@ void load_prog(const char *filename) {
 
   uintptr_t entry = loader(&pcb[i].as, filename);
 
+  pcb[i].cur_brk = 0;
+  pcb[i].max_brk = 0;
+
   // TODO: remove the following three lines after you have implemented _umake()
   _switch(&pcb[i].as);
   current = &pcb[i];
