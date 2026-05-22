@@ -21,4 +21,6 @@ typedef union {
 extern PCB pcb[MAX_NR_PROC];
 extern PCB *current;
 
+_RegSet* schedule(_RegSet *prev);
+
 #endif
