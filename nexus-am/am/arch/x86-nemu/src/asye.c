@@ -6,6 +6,7 @@ static _RegSet* (*H)(_Event, _RegSet*) = NULL;
 void vecsys();
 void vecnull();
 void vectrap();
+void vectime();
 
 _RegSet* irq_handle(_RegSet *tf) {
   _RegSet *next = tf;
@@ -15,6 +16,8 @@ _RegSet* irq_handle(_RegSet *tf) {
       ev.event = _EVENT_SYSCALL;
     } else if ((tf->irq & 0xff) == 0x81) {
       ev.event = _EVENT_TRAP;
+    } else if ((tf->irq & 0xff) == 32) {
+      ev.event = _EVENT_IRQ_TIME;
     } else {
       ev.event = _EVENT_ERROR;
     }
@@ -40,6 +43,8 @@ void _asye_init(_RegSet*(*h)(_Event, _RegSet*)) {
   idt[0x80] = GATE(STS_TG32, KSEL(SEG_KCODE), vecsys, DPL_USER);
   // -------------------- kernel trap --------------------------
   idt[0x81] = GATE(STS_TG32, KSEL(SEG_KCODE), vectrap, DPL_KERN);
+  // -------------------- timer interrupt --------------------------
+  idt[32] = GATE(STS_TG32, KSEL(SEG_KCODE), vectime, DPL_KERN);
 
   set_idt(idt, sizeof(idt));
 
