@@ -41,8 +41,23 @@ _RegSet* schedule(_RegSet *prev) {
     current = &pcb[1];
   }
   
-  // 轮流选择 pcb[0] 和 pcb[1]
-  current = (current == &pcb[0] ? &pcb[1] : &pcb[0]);
+  // 优先级调度：让 pcb[0]（仙剑奇侠传）运行 10 次，才让 pcb[1]（hello）运行 1 次
+  static int pal_count = 0;
+  if (current == &pcb[0]) {
+    pal_count++;
+    if (pal_count < 10) {
+      // 继续运行仙剑奇侠传，不切换
+      _switch(&current->as);
+      return current->tf;
+    } else {
+      // 计数满了，切换到 hello，并重置计数
+      pal_count = 0;
+      current = &pcb[1];
+    }
+  } else {
+    // hello 只运行 1 次就切回仙剑
+    current = &pcb[0];
+  }
   
   // 切换到新地址空间
   _switch(&current->as);
