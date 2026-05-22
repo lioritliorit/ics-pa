@@ -1,10 +1,16 @@
 #include "common.h"
+#include "proc.h"
 
 _RegSet* do_syscall(_RegSet *r);
 
 static _RegSet* do_event(_Event e, _RegSet* r) {
   switch (e.event) {
     case _EVENT_SYSCALL: return do_syscall(r);
+    case _EVENT_TRAP:
+      Log("Kernel trap triggered!");
+      current = &pcb[0];
+      _switch(&pcb[0].as);
+      return pcb[0].tf;
     /* Timer and other hardware IRQs use vecnull (irq = -1) for now. */
     case _EVENT_IRQ_TIME:
     case _EVENT_IRQ_IODEV:

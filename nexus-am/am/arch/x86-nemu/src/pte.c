@@ -84,5 +84,29 @@ void _unmap(_Protect *p, void *va) {
 }
 
 _RegSet *_umake(_Protect *p, _Area ustack, _Area kstack, void *entry, char *const argv[], char *const envp[]) {
-  return NULL;
+  uint32_t *sp = (uint32_t *)ustack.end;
+  
+  // 设置 _start() 的栈帧参数（都是 0 或 NULL）
+  *(--sp) = 0;  // envp
+  *(--sp) = 0;  // argv
+  *(--sp) = 0;  // argc
+  
+  // 设置陷阱帧
+  _RegSet *tf = (_RegSet *)((uint8_t *)sp - sizeof(_RegSet));
+  
+  tf->edi = 0;
+  tf->esi = 0;
+  tf->ebp = 0;
+  tf->esp = (uint32_t)sp;  // 栈顶指向 _start() 的栈帧
+  tf->ebx = 0;
+  tf->edx = 0;
+  tf->ecx = 0;
+  tf->eax = 0;
+  tf->irq = -1;
+  tf->error_code = 0;
+  tf->eip = (uint32_t)entry;
+  tf->cs = 8;  // SEG_KCODE
+  tf->eflags = 0x200;  // IF=1, 允许中断
+  
+  return tf;
 }

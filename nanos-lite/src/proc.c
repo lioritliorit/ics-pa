@@ -2,7 +2,7 @@
 
 #define MAX_NR_PROC 4
 
-static PCB pcb[MAX_NR_PROC];
+PCB pcb[MAX_NR_PROC];
 static int nr_proc = 0;
 PCB *current = NULL;
 
@@ -18,9 +18,9 @@ void load_prog(const char *filename) {
   pcb[i].max_brk = 0;
 
   // TODO: remove the following three lines after you have implemented _umake()
-  _switch(&pcb[i].as);
-  current = &pcb[i];
-  ((void (*)(void))entry)();
+  // _switch(&pcb[i].as);
+  // current = &pcb[i];
+  // ((void (*)(void))entry)();
 
   _Area stack;
   stack.start = pcb[i].stack;
