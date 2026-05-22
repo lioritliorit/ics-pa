@@ -65,6 +65,7 @@ make_EHelper(lea);
 make_EHelper(lidt);
 make_EHelper(mov_r2cr);
 make_EHelper(mov_cr2r);
+make_EHelper(mov_store_cr);
 make_EHelper(int);
 make_EHelper(iret);
 

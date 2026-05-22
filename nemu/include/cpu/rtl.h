@@ -237,4 +237,20 @@ static inline void rtl_update_OF_add(const rtlreg_t* dest, const rtlreg_t* src, 
   rtl_set_OF(&t0);
 }
 
+static inline void rtl_load_cr(rtlreg_t* dest, int r) {
+  switch(r){
+    case 0: *dest = cpu.cr0; return;
+    case 3: *dest = cpu.cr3; return;
+    default: assert(0);
+  }
+}
+
+static inline void rtl_store_cr(int r, const rtlreg_t* src) {
+  switch(r){
+    case 0: cpu.cr0 = *src; return;
+    case 3: cpu.cr3 = *src; return;
+    default: assert(0);
+  }
+}
+
 #endif

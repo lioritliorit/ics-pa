@@ -87,7 +87,7 @@ static inline void restart() {
   cpu.eip = ENTRY_START;
   cpu.eflags_val = 0x2;  // initial value for EFLAGS
   cpu.cs = 8;
-  cpu.cr0 = 0;
+  cpu.cr0 = 0x60000011;
   cpu.cr3 = 0;
 
 #ifdef DIFF_TEST
